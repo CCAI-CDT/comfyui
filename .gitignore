@@ -1,0 +1,5 @@
+.DS_Store
+.venv
+output_*.png
+__pycache__/
+*.pyc
