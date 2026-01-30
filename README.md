@@ -5,7 +5,7 @@
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install pillow websocket-client
+pip install pillow websockets
 ```
 
 Install [ComfyUI](https://comfyui.org/), and download a template and model (e.g. `default`).
