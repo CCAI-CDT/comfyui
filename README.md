@@ -19,5 +19,5 @@ Ensure *Comfy UI* is running, and that the *Comfy UI* server is running.
 
 ```bash
 source .venv/bin/activate
-python comfy-image.py "A beautiful landscape with mountains and a river"
+python comfy_image.py "A beautiful landscape with mountains and a river"
 ```
