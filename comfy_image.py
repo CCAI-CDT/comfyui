@@ -7,36 +7,55 @@
 # pip install pillow websockets
 
 import sys
-import json
-import uuid
+import os
+import io
 import datetime
 import random
-from websockets.sync.client import connect
+import uuid
+import json
 import urllib.request
 import urllib.parse
-import io
+
+from websockets.sync.client import connect
 from PIL import Image
 
 # Default values
 default_server_address = "localhost:8000"  # "localhost:8000" "localhost:8188" 
 default_prompt_file = 'default.json'
-default_prompt_path = '6.inputs.text'
 
 # Generate images via ComfyUI
-def generate_image(prompt_text = None, server_address=default_server_address, prompt_file=default_prompt_file, prompt_path=default_prompt_path):
+def generate_image(inputs = None, server_address=default_server_address, prompt_file=default_prompt_file, paths=None):
+    # If inputs is a string, assume only the prompt is given
+    if isinstance(inputs, str):
+        inputs = {'prompt': inputs}
+
+    # If paths is a string, assume only the prompt path is given
+    if isinstance(paths, str):
+        paths = {'prompt': paths}
+
     # Read JSON prompt
     with open(prompt_file, 'r') as f:
         data = json.load(f)
 
-    # Follow dotted prompt_path to set the value from prompt
-    if prompt_text is not None:
-        if not prompt_path:
-            raise ValueError("prompt_path must be provided if prompt_text is given")
-        keys = prompt_path.split('.')
-        d = data
-        for key in keys[:-1]:
-            d = d[key]
-        d[keys[-1]] = prompt_text
+    # Load path mappings if not already provided
+    if paths is None:
+        prompt_paths_file = prompt_file.rsplit('.', 1)[0] + '.paths.json'
+        if os.path.exists(prompt_paths_file):
+            with open(prompt_paths_file, 'r') as f:
+                paths = json.load(f)
+
+    # Set specified inputs
+    if inputs is not None:
+        for key in inputs:
+            if paths is None:
+                raise ValueError("Paths must be provided when inputs are specified")
+            if key not in paths:
+                raise ValueError(f"Path for input '{key}' was not found in paths")
+            keys = paths[key].split('.')
+            d = data
+            for k in keys[:-1]:
+                d = d[k]
+            d[keys[-1]] = inputs[key]
 
     # Generate a unique client ID
     client_id = str(uuid.uuid4())
@@ -106,7 +125,11 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         prompt_text = sys.argv[1]
     print("PROMPT:", prompt_text, file=sys.stderr)
-    image_files = generate_image(prompt_text)
+    inputs = {
+        'prompt': prompt_text,
+        'seed': random.randint(0, 2**32 - 1),
+    }
+    image_files = generate_image(inputs)
     print("IMAGES:", image_files, file=sys.stderr)
     for image_file in image_files:
         print(image_file)
