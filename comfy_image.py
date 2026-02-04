@@ -27,11 +27,11 @@ default_prompt_file = 'default.json'
 def generate_image(inputs = None, server_address=default_server_address, prompt_file=default_prompt_file, paths=None):
     # If inputs is a string, assume only the prompt is given
     if isinstance(inputs, str):
-        inputs = {'prompt': inputs}
+        inputs = {'text': inputs}
 
     # If paths is a string, assume only the prompt path is given
     if isinstance(paths, str):
-        paths = {'prompt': paths}
+        paths = {'text': paths}
 
     # Read JSON prompt
     with open(prompt_file, 'r') as f:
@@ -126,7 +126,7 @@ if __name__ == "__main__":
         prompt_text = sys.argv[1]
     print("PROMPT:", prompt_text, file=sys.stderr)
     inputs = {
-        'prompt': prompt_text,
+        'text': prompt_text,
         'seed': random.randint(0, 2**32 - 1),
     }
     image_files = generate_image(inputs)

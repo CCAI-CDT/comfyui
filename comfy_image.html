@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comfy Image Generator</title>
+<link rel="shortcut icon" href="data:">
+<!-- <script type="module" src="./comfy_image.mjs"></script> -->
+<style>
+body {
+	font-family: sans-serif;
+}
+</style>
+</head>
+<body>
+<h1>Comfy Image Generator</h1>
+<p>Use the interface below to generate images using ComfyUI.</p>
+<div id="image-generator">
+	<label for="prompt">Prompt:</label>
+	<input type="text" id="prompt" name="prompt" placeholder="Enter your prompt here">
+	<br><br>
+	<button id="generate-button">Generate Image</button>
+	<br><br>
+	<div id="output">
+		<h2>Generated Image:</h2>
+		<img id="generated-image" src="" alt="...">
+	</div>
+</div>
+<script type="module">
+import {default as ComfyUI} from './comfy_image.mjs';
+
+async function started() {
+	console.log('Starting...');
+	const { promptData, paths } = await ComfyUI.fetchPromptFile(ComfyUI.DEFAULT_PROMPT_FILE, true);
+	const comfy = new ComfyUI(ComfyUI.DEFAULT_SERVER_ADDRESS, promptData, paths);
+
+	document.getElementById('generate-button').addEventListener('click', async () => {
+		const prompt = document.getElementById('prompt').value;
+		console.log('Generating image for prompt: ' + prompt);
+		//console.log('PROMPT:', prompt);
+		const inputs = {
+			text: prompt,
+			seed: Math.floor(Math.random() * 4294967295)
+		};
+		// console.log('INPUTS:', inputs);
+		const data = comfy.completePrompt(inputs);
+		// console.log('DATA:', data);
+		const imageResults = await comfy.generateImage(data);
+		console.log('Generated images:', imageResults.length);
+		const imageData = imageResults.length > 0 ? imageResults[0].data : null;
+		// console.log('IMG-DATA:', imageData);
+		const blob = imageData ? new Blob([new Uint8Array(imageData)], { type: 'image/png' }) : null;
+		// console.log('BLOB:', blob);
+		const imgUrl = blob ? URL.createObjectURL(blob) : '';
+		//console.log('IMG-URL:', imgUrl);
+		document.getElementById('generated-image').src = imgUrl;
+	});
+	console.log('Started.');
+}
+
+document.addEventListener('DOMContentLoaded', started);
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 {
-    "prompt": "6.inputs.text",
-    "negative_prompt": "7.inputs.text",
+    "text": "6.inputs.text",
+    "negative_text": "7.inputs.text",
     "seed": "3.inputs.seed"
 }
