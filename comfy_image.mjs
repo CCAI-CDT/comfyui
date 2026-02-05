@@ -70,7 +70,7 @@ class ComfyUI {
         }
     }
 
-    completePrompt(inputs) {
+    completePrompt(inputs, queryValues) {
         // If inputs is a string, assume only the prompt is given
         if (typeof inputs === 'string') {
             inputs = { 'text': inputs };
@@ -100,7 +100,11 @@ class ComfyUI {
                     let found = false;
                     findKey(data, (o, k, v) => {
                         if (!found && k === key) {
-                            o[k] = inputs[key];
+                            if (queryValues) {
+                                inputs[key ] = o[k];
+                            } else {
+                                o[k] = inputs[key];
+                            }
                             found = true;
                         }
                         return !found;
@@ -114,7 +118,11 @@ class ComfyUI {
                     for (let i = 0; i < keys.length - 1; i++) {
                         d = d[keys[i]];
                     }
-                    d[keys[keys.length - 1]] = inputs[key];
+                    if (queryValues) {
+                        inputs[key] = d[keys[keys.length - 1]];
+                    } else {
+                        d[keys[keys.length - 1]] = inputs[key];
+                    }
                 }
             }
         }

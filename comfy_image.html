@@ -9,14 +9,12 @@
 <style>
 html {
 	font-family: sans-serif;
-	background: grey;
 	min-height: 100%;
 }
 body {
 	max-width: 800px;
 	margin: auto;
 	padding: 1em;
-	background: white;
 }
 fieldset {
 	border: 1px solid #ccc;
@@ -24,7 +22,7 @@ fieldset {
 	padding: 10px;
 	margin-bottom: 20px;
 	display: grid;
-	grid-template-columns: auto 1fr auto;
+	grid-template-columns: auto 1fr auto auto;
 	gap: 10px;
 }
 legend {
@@ -96,6 +94,14 @@ button {
 	0%   { background-position: 0 0; }
 	100% { background-position: 200% 0; }
 }
+@media (prefers-color-scheme: dark) {
+	html, input {
+		background: #333;
+	}
+	html, input, legend {
+		color: #ccc;
+	}
+}
 </style>
 </head>
 <body>
@@ -105,8 +111,10 @@ button {
 	<form id="prompt-form">
 		<fieldset>
 			<legend>Image Generation</legend>
+
 			<label for="prompt">Prompt:</label>
-			<input type="text" id="prompt" name="prompt" placeholder="rainbow, painting" autofocus>
+			<input type="text" id="prompt" placeholder="rainbow, painting" autofocus>
+			<label><input type="checkbox" id="randomize-seed">Randomize</label>
 			<button type="submit">Generate</button>
 		</fieldset>
 	</form>
@@ -138,6 +146,16 @@ async function started() {
 	update_status('Starting... ' + modelName);
 	const { promptData, paths } = await ComfyUI.fetchPromptFile(PROMPT_FILE, true);
 	const comfy = new ComfyUI(SERVER_ADDRESS, promptData, paths);
+	// Try to populate the placeholder with the prompt's default value
+	try {
+		const queryPrompt = { text: null };
+		comfy.completePrompt(queryPrompt, true)
+		if (queryPrompt.text) {
+			document.getElementById('prompt').placeholder = queryPrompt.text;
+		}
+	} catch (error) {
+		update_status('Warning: Could not get default prompt value: ' + error);
+	}
 
 	document.getElementById('prompt-form').addEventListener('submit', async (event) => {
 		event.preventDefault();
@@ -148,10 +166,13 @@ async function started() {
 			promptElement.select();
 			update_status('Generating image for prompt: ' + prompt);
 			//console.log('PROMPT:', prompt);
-			const inputs = {
-				text: prompt,
-				seed: Math.floor(Math.random() * 4294967295)
-			};
+			const inputs = {};
+			if (prompt) {
+				inputs.text = prompt;
+			}
+			if (document.getElementById('randomize-seed').checked) {
+				inputs.seed = Math.floor(Math.random() * 4294967295);
+			}
 			if (IMAGE_SIZE) {
 				inputs.width = IMAGE_SIZE.length > 0 ? IMAGE_SIZE[0] : IMAGE_SIZE;
 				inputs.height = IMAGE_SIZE.length > 1 ? IMAGE_SIZE[1] : IMAGE_SIZE;
