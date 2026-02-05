@@ -1,7 +1,7 @@
 {
     "text": "6.inputs.text",
     "negative_text": "7.inputs.text",
-    "seed": "3.inputs.seed",
+    "seed": "13.inputs.noise_seed",
     "width": "5.inputs.width",
     "height": "5.inputs.height"
 }

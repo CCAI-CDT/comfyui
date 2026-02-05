@@ -7,55 +7,176 @@
 <link rel="shortcut icon" href="data:">
 <!-- <script type="module" src="./comfy_image.mjs"></script> -->
 <style>
-body {
+html {
 	font-family: sans-serif;
+	background: grey;
+	min-height: 100%;
+}
+body {
+	max-width: 800px;
+	margin: auto;
+	padding: 1em;
+	background: white;
+}
+fieldset {
+	border: 1px solid #ccc;
+	border-radius: 5px;
+	padding: 10px;
+	margin-bottom: 20px;
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	gap: 10px;
+}
+legend {
+	font-size: small;
+	color: #333;
+}
+label {
+	padding-top: 0.6em;
+}
+input[type="text"] {
+	border: 1px solid #ccc;
+	border-radius: 5px;
+	padding: 0.5em;
+}
+button {
+	border: none;
+	background-color: #007BFF;
+	color: white;
+	padding: 5px 10px;
+	border-radius: 5px;
+	cursor: pointer;
+}
+.image-container {
+	text-align: center;
+}
+.status-container {
+	margin: 1em 0;
+	border: 1px solid #ccc;
+	border-left: 10px solid #ccc;
+	padding: 0.5em;
+	border-radius: 5px;
+}
+.status-container label {
+	font-weight: bold;
+	margin-right: 5px;
+}
+.image {
+	filter: grayscale(0%);
+	transition: filter 0.25s ease-in-out;
+}
+.image.generating {
+	display: inline-block;
+	position: relative;
+	filter: grayscale(50%);
+}
+.image.generating::before {
+	content: '';
+	vertical-align: top;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.5), transparent, rgba(255, 255, 255, 0.5), transparent);
+	background-size: 200% 200%;
+	animation: gradient-swipe 2s linear infinite;
+	transition: opacity 0.25s ease-in;
+	@starting-style {
+	    opacity: 0;
+	}
+}
+.image img {
+	border: 1px solid black;
+	border-radius: 5px;
+	box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+	max-width: 100%;
+}
+@keyframes gradient-swipe {
+	0%   { background-position: 0 0; }
+	100% { background-position: 200% 0; }
 }
 </style>
 </head>
 <body>
-<h1>Comfy Image Generator</h1>
-<p>Use the interface below to generate images using ComfyUI.</p>
+<h1>Image Generator</h1>
+<p>Generate images using ComfyUI.</p>
 <div id="image-generator">
-	<label for="prompt">Prompt:</label>
-	<input type="text" id="prompt" name="prompt" placeholder="Enter your prompt here">
-	<br><br>
-	<button id="generate-button">Generate Image</button>
-	<br><br>
+	<form id="prompt-form">
+		<fieldset>
+			<legend>Image Generation</legend>
+			<label for="prompt">Prompt:</label>
+			<input type="text" id="prompt" name="prompt" placeholder="rainbow, painting" autofocus>
+			<button type="submit">Generate</button>
+		</fieldset>
+	</form>
 	<div id="output">
-		<h2>Generated Image:</h2>
-		<img id="generated-image" src="" alt="...">
+		<div class="image-container">
+			<span class="image"><img id="generated-image" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'><rect width='512' height='512' fill='%23333333'/></svg>" alt="Generated Image"></span>
+		</div>
+		<div class="status-container">
+			<label for="status">Status:</label>
+			<output id="status">...</output>
+		</div>
 	</div>
 </div>
 <script type="module">
 import {default as ComfyUI} from './comfy_image.mjs';
 
-async function started() {
-	console.log('Starting...');
-	const { promptData, paths } = await ComfyUI.fetchPromptFile(ComfyUI.DEFAULT_PROMPT_FILE, true);
-	const comfy = new ComfyUI(ComfyUI.DEFAULT_SERVER_ADDRESS, promptData, paths);
+const PROMPT_FILE = "sdxlturbo_example.json"; // ComfyUI.DEFAULT_PROMPT_FILE;
+const SERVER_ADDRESS = ComfyUI.DEFAULT_SERVER_ADDRESS;
+const IMAGE_SIZE = false; // false; // 512; // 1024;
 
-	document.getElementById('generate-button').addEventListener('click', async () => {
-		const prompt = document.getElementById('prompt').value;
-		console.log('Generating image for prompt: ' + prompt);
-		//console.log('PROMPT:', prompt);
-		const inputs = {
-			text: prompt,
-			seed: Math.floor(Math.random() * 4294967295)
-		};
-		// console.log('INPUTS:', inputs);
-		const data = comfy.completePrompt(inputs);
-		// console.log('DATA:', data);
-		const imageResults = await comfy.generateImage(data);
-		console.log('Generated images:', imageResults.length);
-		const imageData = imageResults.length > 0 ? imageResults[0].data : null;
-		// console.log('IMG-DATA:', imageData);
-		const blob = imageData ? new Blob([new Uint8Array(imageData)], { type: 'image/png' }) : null;
-		// console.log('BLOB:', blob);
-		const imgUrl = blob ? URL.createObjectURL(blob) : '';
-		//console.log('IMG-URL:', imgUrl);
-		document.getElementById('generated-image').src = imgUrl;
+function update_status(message) {
+	console.log('STATUS: ' + message);
+	const statusElement = document.getElementById('status');
+	statusElement.textContent = message;
+}
+
+async function started() {
+	const modelName = PROMPT_FILE.split('.')[0];
+	update_status('Starting... ' + modelName);
+	const { promptData, paths } = await ComfyUI.fetchPromptFile(PROMPT_FILE, true);
+	const comfy = new ComfyUI(SERVER_ADDRESS, promptData, paths);
+
+	document.getElementById('prompt-form').addEventListener('submit', async (event) => {
+		event.preventDefault();
+		document.querySelector('.image').classList.add('generating');
+		try {
+			const promptElement = document.getElementById('prompt');
+			const prompt = promptElement.value;
+			promptElement.select();
+			update_status('Generating image for prompt: ' + prompt);
+			//console.log('PROMPT:', prompt);
+			const inputs = {
+				text: prompt,
+				seed: Math.floor(Math.random() * 4294967295)
+			};
+			if (IMAGE_SIZE) {
+				inputs.width = IMAGE_SIZE.length > 0 ? IMAGE_SIZE[0] : IMAGE_SIZE;
+				inputs.height = IMAGE_SIZE.length > 1 ? IMAGE_SIZE[1] : IMAGE_SIZE;
+			}
+			// console.log('INPUTS:', inputs);
+			const data = comfy.completePrompt(inputs);
+			// console.log('DATA:', data);
+			const timeStart = performance.now();
+			const imageResults = await comfy.generateImage(data);
+			const duration = (performance.now() - timeStart) / 1000;
+			update_status(`Generated with ${modelName}: ${imageResults.length} image(s) in ${duration.toFixed(3)} seconds.`);
+			const imageData = imageResults.length > 0 ? imageResults[0].data : null;
+			// console.log('IMG-DATA:', imageData);
+			const blob = imageData ? new Blob([new Uint8Array(imageData)], { type: 'image/png' }) : null;
+			// console.log('BLOB:', blob);
+			const imgUrl = blob ? URL.createObjectURL(blob) : '';
+			//console.log('IMG-URL:', imgUrl);
+			document.getElementById('generated-image').src = imgUrl;
+		} catch (error) {
+			update_status('Error generating image: ' + error);
+		} finally {
+			document.querySelector('.image').classList.remove('generating');
+		}
 	});
-	console.log('Started.');
+	update_status('Ready (' + modelName + ').');
 }
 
 document.addEventListener('DOMContentLoaded', started);
